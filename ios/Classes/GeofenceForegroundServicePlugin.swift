@@ -22,8 +22,8 @@ public class GeofenceForegroundServicePlugin: NSObject, FlutterPlugin {
          //Disable permission on start
         // instance.locationManager.requestAlwaysAuthorization()
 
-        instance.locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        instance.locationManager.distanceFilter = 1.0
+        instance.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        instance.locationManager.distanceFilter = 100.0
 
         let channel = FlutterMethodChannel(
             name: "\(GeofenceForegroundServicePlugin.identifier)/foreground_geofence_foreground_service",
