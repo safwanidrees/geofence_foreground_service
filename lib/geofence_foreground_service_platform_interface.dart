@@ -71,4 +71,9 @@ abstract class GeofenceForegroundServicePlatform extends PlatformInterface {
   Future<bool> removeAllGeoFences() {
     throw UnimplementedError('removeAllGeoFences() has not been implemented.');
   }
+
+  Future<List<Zone>> getRegisteredGeofences() {
+    throw UnimplementedError(
+        'getRegisteredGeofences() has not been implemented.');
+  }
 }

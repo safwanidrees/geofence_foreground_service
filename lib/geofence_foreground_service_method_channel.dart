@@ -204,4 +204,23 @@ class MethodChannelGeofenceForegroundService
 
     return areAllAreasRemoved;
   }
+
+  @override
+  Future<List<Zone>> getRegisteredGeofences() async {
+    try {
+      final List<dynamic>? zones = await foregroundChannel
+          .invokeMethod<List<dynamic>>('getRegisteredGeofences');
+
+      return zones
+              ?.map((e) => Zone.fromJson(Map<String, dynamic>.from(e)))
+              .toList() ??
+          <Zone>[];
+    } catch (e) {
+      log(
+        e.toString(),
+        name: 'getRegisteredGeofences_failure',
+      );
+      rethrow;
+    }
+  }
 }

@@ -74,24 +74,62 @@ public class GeofenceForegroundServicePlugin: NSObject, FlutterPlugin {
             } catch {
                 print("Error decoding Zone: \(error)")
             }
+        case "getRegisteredGeofences":
+            result(getRegisteredGeofences())
         case "addGeoFences":
             result(false)
 //            let zonesList: ZonesList = ZonesList(fromJson: call.arguments as! [String : Any])
 
 //            addGeoFences(zonesList, result)
         case "removeGeofence":
-            result("iOS " + UIDevice.current.systemVersion)
+             guard let arguments = call.arguments as? [String: Any],
+              let zoneId = arguments["zone_id"] as? String else {
+            result(FlutterError(code: "INVALID_PARAMETERS", message: "Invalid parameters for removeGeofence", details: nil))
+            return
+            }
+            removeGeofence(identifier: zoneId, result: result)   
         default:
             result(FlutterMethodNotImplemented)
         }
     }
-
+private func getRegisteredGeofences() -> [[String: Any]] {
+    var geofenceAreas: [[String: Any]] = []
+    
+    let regions = locationManager.monitoredRegions
+    for region in regions {
+        if let circularRegion = region as? CLCircularRegion {
+            let geofenceArea: [String: Any] = [
+                "id": circularRegion.identifier,
+                "coordinates": [
+                [
+                    "latitude": circularRegion.center.latitude,
+                    "longitude": circularRegion.center.longitude
+                ]
+            ],
+                "radius": circularRegion.radius
+            ]
+            geofenceAreas.append(geofenceArea)
+        }
+    }
+    
+    return geofenceAreas
+}
     private func addGeoFences(zones: ZonesList, result: @escaping FlutterResult) {
         for zone in zones.zones ?? [] {
             addGeoFence(zone: zone, result: result)
         }
     }
-
+    private func removeGeofence(identifier: String, result: @escaping FlutterResult) {
+        let regions = locationManager.monitoredRegions
+        for region in regions {
+            if let circularRegion = region as? CLCircularRegion, circularRegion.identifier == identifier {
+                locationManager.stopMonitoring(for: circularRegion)
+                result(true)
+                return
+            }
+        }
+        result(FlutterError(code: "GEOFENCE_NOT_FOUND", message: "Geofence with identifier \(identifier) not found", details: nil))
+    }
     private func addGeoFence(zone: Zone, result: @escaping FlutterResult) {
         guard let coordinates = zone.coordinates, !coordinates.isEmpty else {
             result(
