@@ -33,12 +33,22 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
+import org.json.JSONObject
+ 
 
 @Suppress("DEPRECATION") // Deprecated for third party Services.
 fun <T> Context.isServiceRunning(service: Class<T>) =
     (getSystemService(ACTIVITY_SERVICE) as ActivityManager)
         .getRunningServices(Integer.MAX_VALUE)
         .any { it.service.className == service.name }
+
+        // Add to your Constants object/class
+object MyConstants {
+    // ...existing constants...
+    const val preferencesFileName = "geofence_preferences"
+    const val geofenceSetKey = "geofence_set"
+}
+
 
 /** GeofenceForegroundServicePlugin */
 class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -177,7 +187,9 @@ class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, Activi
 
                 addGeofence(zone, result)
             }
-
+"getRegisteredGeofences" -> {
+    result.success(getRegisteredGeofences())
+}
             "addGeoFences" -> {
                 val zonesList: ZonesList = ZonesList.fromJson(call.arguments as Map<String, Any>)
 
@@ -195,6 +207,39 @@ class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, Activi
             }
         }
     }
+ 
+    private fun getRegisteredGeofences(): List<Map<String, Any>> {
+        val geofenceAreas = mutableListOf<Map<String, Any>>()
+        
+        val sharedPreferences = context.getSharedPreferences(MyConstants.preferencesFileName, Context.MODE_PRIVATE)
+        val geofencesSet = sharedPreferences.getStringSet(MyConstants.geofenceSetKey, emptySet()) ?: emptySet()
+        
+        for (geofenceJson in geofencesSet) {
+            try {
+                val jsonObject = JSONObject(geofenceJson)
+                val coordinates = jsonObject.getJSONArray("coordinates")
+                val coordinate = coordinates.getJSONObject(0)
+                
+                val geofenceArea = mapOf(
+                    "id" to jsonObject.getString("id"),
+                    "coordinates" to listOf(
+                        mapOf(
+                            "latitude" to coordinate.getDouble("latitude"),
+                            "longitude" to coordinate.getDouble("longitude")
+                        )
+                    ),
+                    "radius" to jsonObject.getDouble("radius")
+                )
+                geofenceAreas.add(geofenceArea)
+            } catch (e: Exception) {
+                Log.e("GeofencePlugin", "Error parsing geofence: ${e.message}")
+                continue
+            }
+        }
+        
+        return geofenceAreas
+    }
+
 
     private fun addGeofence(zone: Zone, result: Result) {
         if (!SharedPreferenceHelper.hasCallbackHandle(context)) {
@@ -207,6 +252,16 @@ class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, Activi
             )
             return
         }
+ // Store geofence in SharedPreferences
+ val sharedPreferences = context.getSharedPreferences(MyConstants.preferencesFileName, Context.MODE_PRIVATE)
+ val existingGeofences = sharedPreferences.getStringSet(MyConstants.geofenceSetKey, mutableSetOf()) ?: mutableSetOf()
+ val newGeofences = existingGeofences.toMutableSet()
+ newGeofences.add(JSONObject(zone.toJson()).toString())
+ 
+ sharedPreferences.edit()
+     .putStringSet(MyConstants.geofenceSetKey, newGeofences)
+     .apply()
+
 
         val geofencingRequest = GeofencingRequest.Builder()
             .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
@@ -329,6 +384,24 @@ class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, Activi
 
     private fun removeGeofence(geofenceRequestIds: List<String>, result: Result) {
         val geofencingClient = LocationServices.getGeofencingClient(context)
+
+// Remove from SharedPreferences
+val sharedPreferences = context.getSharedPreferences(MyConstants.preferencesFileName, Context.MODE_PRIVATE)
+val existingGeofences = sharedPreferences.getStringSet(MyConstants.geofenceSetKey, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+
+val updatedGeofences = existingGeofences.filter { geofenceJson ->
+    try {
+        val jsonObject = JSONObject(geofenceJson)
+        !geofenceRequestIds.contains(jsonObject.getString("id"))
+    } catch (e: Exception) {
+        Log.e("GeofencePlugin", "Error parsing geofence during removal: ${e.message}")
+        true
+    }
+}.toSet()
+
+sharedPreferences.edit()
+    .putStringSet(MyConstants.geofenceSetKey, updatedGeofences)
+    .apply()
 
         geofencingClient.removeGeofences(geofenceRequestIds).addOnSuccessListener {
             result.success(true)
