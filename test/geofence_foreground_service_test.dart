@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geofence_foreground_service/geofence_foreground_service_platform_interface.dart';
 import 'package:geofence_foreground_service/geofence_foreground_service_method_channel.dart';
+import 'package:geofence_foreground_service/geofence_foreground_service_platform_interface.dart';
 import 'package:geofence_foreground_service/models/background_task_handlers.dart';
 import 'package:geofence_foreground_service/models/notification_icon_data.dart';
 import 'package:geofence_foreground_service/models/zone.dart';
@@ -52,6 +52,12 @@ class MockGeofenceForegroundServicePlatform
   @override
   void handleTrigger(
       {required BackgroundTriggerHandler backgroundTriggerHandler}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Zone>> getRegisteredGeofences() {
+    // TODO: implement getRegisteredGeofences
     throw UnimplementedError();
   }
 }
