@@ -31,8 +31,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry
+import io.flutter.plugin.common.MethodChannel.Result 
 import org.json.JSONObject
  
 
@@ -56,7 +55,7 @@ class GeofenceForegroundServicePlugin : FlutterPlugin, MethodCallHandler, Activi
         const val geofenceRegisterFailure: Int = 525601
         const val geofenceRemoveFailure: Int = 525602
 
-        var pluginRegistryCallback: PluginRegistry.PluginRegistrantCallback? = null
+      
     }
 
     private lateinit var channel: MethodChannel
